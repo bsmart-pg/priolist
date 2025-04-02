@@ -1,0 +1,47 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" 
+          content="width=device-width, initial-scale=1.0">
+    <title>Styled File Input (1st Approach)</title>
+    <style>
+        body{
+            background: #e4eafa;
+        }
+        #div1{
+            text-align: center;
+            max-width: 320px;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Roboto', sans-serif;
+        }
+        #down-btn{
+            font-size: 1.5rem;
+            background-color: #0b2b53;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Roboto', sans-serif;
+            margin-top: 20px;
+            transition: background .2s ease-in-out;
+        }
+        #down-btn:hover{
+            background:#3c5474;
+        }
+    </style>
+</head>
+<body>
+    <img alt="My Image" src="https://www.trex.parts/rwd-images/trexparts-large.svg" height="65px"/>
+    <div id="div1">
+        {% for filename in files %}
+        <a href="{{ url_for('download_file', filename=filename) }}" download="{{filename}}">
+            <button type="submit" id="down-btn">Download Report</button>
+        </a><br />
+        {% endfor %}
+    </div>  
+</body>
+</html>
