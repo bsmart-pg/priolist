@@ -8,6 +8,7 @@ from flask_httpauth import HTTPBasicAuth
 from flask import jsonify, make_response
 from flask_cors import CORS  # You need to install this: pip install flask-cors
 from flask import after_this_request
+import logging
 
 
 ALLOWED_EXTENSIONS = set(['xlsx', 'csv'])
@@ -24,10 +25,9 @@ def create_app():
     @app.route('/process', methods=['GET', 'POST'])
     def process():
         if request.method == 'POST':
-            print(request.files)
             file1 = request.files['artikel']
             # file1 = pd.read_excel(file1)
-            print("Done reading articles")
+            app.logger.info("Done reading articles")
             if file1 and allowed_file(file1.filename):
                 filename = secure_filename(file1.filename)
                 new_filename = f'{filename.split(".")[0]}_{str(datetime.now())}.xlsx'
@@ -40,7 +40,7 @@ def create_app():
 
             file2 = request.files['sales']
             # file2 = pd.read_excel(file2)
-            print("Done reading sales")
+            app.logger.info("Done reading sales")
             if file2 and allowed_file(file2.filename):
                 filename = secure_filename(file2.filename)
                 new_filename = f'{filename.split(".")[0]}_{str(datetime.now())}.xlsx'
@@ -53,7 +53,7 @@ def create_app():
             
             file3 = request.files['jira']
             # file3 = pd.read_excel(file3)
-            print("Done reading jira")
+            app.logger.info("Done reading jira")
             if file3 and allowed_file(file3.filename):
                 filename = secure_filename(file3.filename)
                 new_filename = f'{filename.split(".")[0]}_{str(datetime.now())}.csv'
@@ -66,7 +66,7 @@ def create_app():
             
             file4 = request.files['such']
             # file4 = pd.read_excel(file4)
-            print("Done reading search")
+            app.logger.info("Done reading search")
             if file4 and allowed_file(file4.filename):
                 filename = secure_filename(file4.filename)
                 new_filename = f'{filename.split(".")[0]}_{str(datetime.now())}.xlsx'
@@ -79,7 +79,7 @@ def create_app():
             
             file5 = request.files['alt']
             # file5 = pd.read_excel(file5)
-            print("Done reading search")
+            app.logger.info("Done reading search")
             if file5 and allowed_file(file5.filename):
                 filename = secure_filename(file5.filename)
                 new_filename = f'{filename.split(".")[0]}_{str(datetime.now())}.xlsx'
@@ -137,9 +137,9 @@ def delete_files_in_directory(directory_path):
             file_path = os.path.join(directory_path, file)
             if os.path.isfile(file_path):
                 os.remove(file_path)
-        print("All files deleted successfully.")
+        app.logger.info("All files deleted successfully.")
    except OSError:
-       print("Error occurred while deleting files.")
+       app.logger.error("Error occurred while deleting files.")
 
 def page_not_found(e):
     app.logger.warning('User raised an 404: '  + str(e) + "/ "  + str(request.url))
@@ -147,6 +147,7 @@ def page_not_found(e):
 
 if __name__ == "__main__":
     app = create_app()
+    app.logger.setLevel(logging.INFO)
     app.register_error_handler(404, page_not_found)
     port = int(os.environ.get('PORT', 8081))
     app.run(host='0.0.0.0', port=port)

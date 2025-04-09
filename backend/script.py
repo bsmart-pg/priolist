@@ -3,10 +3,13 @@ import os
 from datetime import datetime
 import time
 import pandas as pd
+import logging
 
 import re
 import dask.dataframe as dd
 from rapidfuzz import process, distance
+
+log = logging.getLogger('scriptlogger')
 
 def calc_match(x:str, str_list: list[str]):
     res = process.extract(str(x), str_list, scorer=distance.LCSseq.normalized_distance, limit=1, score_cutoff=0.1)
@@ -17,18 +20,18 @@ def calc_match(x:str, str_list: list[str]):
 
 def process_csv(file1, file2, file3, file4, file5, filter_string = None):
 
-    print("start processing & matching")
+    log.info("start processing & matching")
     article = pd.read_excel(file1)
-    print("done reading article xlsx")
+    log.info("done reading article xlsx")
     sales = pd.read_excel(file2, skiprows= [0,1,2,3,4,5,6,7])
-    print("done reading sales xlsx")
+    log.info("done reading sales xlsx")
     #jira = pd.read_excel(file3)
     jira = pd.read_csv(file3, delimiter = ";")
-    print("done reading jira xlsx")
+    log.info("done reading jira xlsx")
     search = pd.read_excel(file4)
-    print("done reading search xlsx")
+    log.info("done reading search xlsx")
     alternatives = pd.read_excel(file5)
-    print("done reading alternatives xlsx")
+    log.info("done reading alternatives xlsx")
 
 
 
@@ -45,7 +48,7 @@ def process_csv(file1, file2, file3, file4, file5, filter_string = None):
     artikelnummern = article["Granit-Nummer"].astype(str)
     markenliste = article["Marke"].str.upper().unique().tolist()
 
-    print("Done processing articles")
+    log.info("Done processing articles")
 
     ## Sales processing
     sales = sales[sales["Lieferant 10"].isin(vendor_indicies)]
@@ -53,30 +56,30 @@ def process_csv(file1, file2, file3, file4, file5, filter_string = None):
     sales = sales.iloc[:, [2,20,37,38]]
     sales["Artikelnummer"] =  sales["Artikelnummer"].apply(lambda x: re.sub(r'\W+', '', str(x)).strip())
 
-    print("Done processing sales")
+    log.info("Done processing sales")
 
     ## Jira processing
     jira = jira.dropna(subset = ["OE cross reference"])
     jira = jira.iloc[:,[2,7,15]]
     jira["OE cross reference"] =  jira["OE cross reference"].apply(lambda x: re.sub(r'\W+', '', str(x)).strip().strip("0"))
 
-    print("Done processing jira")
+    log.info("Done processing jira")
 
     ## search processing
     search = search.iloc[:,[0,2]]
     search["Suchphrase (interne Suche)"] =  search["Suchphrase (interne Suche)"].apply(lambda x: re.sub(r'\W+', '', str(x)).strip().strip("0"))
     search = search[~search["Suchphrase (interne Suche)"].str.isalpha()] # remove search with text only
     search = search.groupby("Suchphrase (interne Suche)" , as_index=False).sum().sort_values("Suchen") # add together similar searches
-    search = search[search["Suchen"]>0]
+    search = search[search["Suchen"]>10]
 
-    print("Done processing search")
+    log.info("Done processing search")
 
     ## search processing
     alternatives = alternatives.iloc[:, [1,3,7,8]]
     alternatives = alternatives[alternatives["Crossrefmarke"].str.upper().isin(markenliste)]
     alternatives["Crossreferenz"] =  alternatives["Crossreferenz"].apply(lambda x: re.sub(r'\W+', '', str(x)).strip().strip("0"))
 
-    print("Done processing alternatives")
+    log.info("Done processing alternatives")
 
     ## Match Sales
     start = time.time()
@@ -96,7 +99,7 @@ def process_csv(file1, file2, file3, file4, file5, filter_string = None):
     article = pd.merge(article, result, on="Granit-Nummer", how='left')
     
     end = time.time()
-    print("Done matching sales in " + str(end - start) + "sec")
+    log.info("Done matching sales in " + str(end - start) + "sec")
 
     ## Match Jira
     start = time.time()
@@ -115,7 +118,7 @@ def process_csv(file1, file2, file3, file4, file5, filter_string = None):
     article = pd.merge(article, result, on="* Original Lief.MaterialNr. Clean", how='left')
 
     end = time.time()
-    print("Done matching jira in " + str(end - start) + "sec")
+    log.info("Done matching jira in " + str(end - start) + "sec")
 
     ## Match Search
     start = time.time()
@@ -134,7 +137,7 @@ def process_csv(file1, file2, file3, file4, file5, filter_string = None):
     article = pd.merge(article, result, on="* Original Lief.MaterialNr. Clean", how='left')
 
     end = time.time()
-    print("Done matching search in " + str(end - start) + "sec")
+    log.info("Done matching search in " + str(end - start) + "sec")
 
     ## Match alternatives
     start = time.time()
@@ -153,7 +156,7 @@ def process_csv(file1, file2, file3, file4, file5, filter_string = None):
     article = pd.merge(article, result, on="* Original Lief.MaterialNr. Clean", how='left')
 
     end = time.time()
-    print("Done matching alternatives in " + str(end - start) + "sec")
+    log.info("Done matching alternatives in " + str(end - start) + "sec")
 
     output_file = f'report_{str(datetime.now())}'
     output_file = output_file.replace(" ","_").replace("-","_").replace(":","_").replace(".","_")
